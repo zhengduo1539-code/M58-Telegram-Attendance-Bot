@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: m58-telegram-attendance-bot
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_TIME_ZONE
+        value: Asia/Rangoon
+      - key: ACTIVITY_LIMIT_MINUTES
+        value: "15"
+      - key: BOT_DATA_PATH
+        value: data/m58-bot-state.json
