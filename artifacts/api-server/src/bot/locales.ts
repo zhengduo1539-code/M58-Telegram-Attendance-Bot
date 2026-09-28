@@ -62,9 +62,12 @@ const escapeHtml = (value: string): string =>
 const userLink = (text: string, userId: number): string =>
   `<a href="tg://user?id=${userId}">${escapeHtml(text)}</a>`;
 
+const inlineCode = (value: string | number): string =>
+  `<code>${escapeHtml(String(value))}</code>`;
+
 const userIdentity = (displayName: string, userId: number) => ({
   name: userLink(displayName, userId),
-  id: userLink(String(userId), userId),
+  id: inlineCode(userId),
 });
 
 const formatChineseDuration = (totalSeconds: number): string => {
@@ -91,31 +94,31 @@ const zh: LocaleText = {
   title: "打卡机器人 M58",
   help: [
     "可用命令：",
-    "/work — 上班",
-    "/back — 回座并结算当前活动",
-    "/eat — 吃饭",
-    "/wc — 上厕所",
-    "/smoke — 抽烟",
-    "/wcd — WCD",
-    "/offwork — 下班",
-    "/lang en — 切换英文",
-    "/lang zh — 切换中文",
+    `${inlineCode("/work")} — 上班`,
+    `${inlineCode("/back")} — 回座并结算当前活动`,
+    `${inlineCode("/eat")} — 吃饭`,
+    `${inlineCode("/wc")} — 上厕所`,
+    `${inlineCode("/smoke")} — 抽烟`,
+    `${inlineCode("/wcd")} — WCD`,
+    `${inlineCode("/offwork")} — 下班`,
+    `${inlineCode("/lang en")} — 切换英文`,
+    `${inlineCode("/lang zh")} — 切换中文`,
     "",
-    "活动开始后请在回座时使用 /back。",
+    `活动开始后请在回座时使用 ${inlineCode("/back")}。`,
   ].join("\n"),
   noActive: "当前没有正在进行的活动，无需回座结算。",
   alreadyActive: (activity) =>
-    `⚠️ 你正在进行「${activity}」，请先使用 /back 回座后再开始新的活动。`,
+    `⚠️ 你正在进行「${inlineCode(activity)}」，请先使用 ${inlineCode("/back")} 回座后再开始新的活动。`,
   started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
     const identity = userIdentity(displayName, userId);
     return [
       `用户：${identity.name}`,
       `用户标识：${identity.id}`,
-      `✅ 打卡成功：${activity} - ${time}`,
-      `注意：这是第 ${occurrence} 次${activity}`,
-      `本次活动时间限制：${limitMinutes} 分钟`,
+      `✅ 打卡成功：${inlineCode(activity)} - ${inlineCode(time)}`,
+      `注意：这是第 ${inlineCode(occurrence)} 次${inlineCode(activity)}`,
+      `本次活动时间限制：${inlineCode(`${limitMinutes} 分钟`)}`,
       "提示：活动完成后请及时打卡回座",
-      "回座：/back",
+      `回座：${inlineCode("/back")}`,
     ].join("\n");
   },
   settled: (
@@ -132,22 +135,22 @@ const zh: LocaleText = {
     return [
       `用户：${identity.name}`,
       `用户标识：${identity.id}`,
-      `✅ ${startTime} 回座打卡成功：${activity}`,
+      `✅ ${inlineCode(startTime)} 回座打卡成功：${inlineCode(activity)}`,
       "提示：本次活动时间已结算。",
-      `本次活动耗时：${formatChineseDuration(durationSeconds)}`,
-      `今日累计${activity}时间：${formatChineseDuration(todayActivitySeconds)}`,
-      `今日累计活动总时间：${formatChineseDuration(todayTotalSeconds)}`,
+      `本次活动耗时：${inlineCode(formatChineseDuration(durationSeconds))}`,
+      `今日累计${inlineCode(activity)}时间：${inlineCode(formatChineseDuration(todayActivitySeconds))}`,
+      `今日累计活动总时间：${inlineCode(formatChineseDuration(todayTotalSeconds))}`,
       "--------------------",
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
         .map(
           (kind) =>
-            `本日${activityLabel(kind, "zh")}：${todayCounts[kind]} 次`,
+            `本日${activityLabel(kind, "zh")}：${inlineCode(`${todayCounts[kind]} 次`)}`,
         ),
     ].join("\n");
   },
-  shiftStarted: (time) => `✅ 上班打卡成功：${time}`,
-  shiftEnded: (time) => `✅ 下班打卡成功：${time}`,
+  shiftStarted: (time) => `✅ 上班打卡成功：${inlineCode(time)}`,
+  shiftEnded: (time) => `✅ 下班打卡成功：${inlineCode(time)}`,
   languageChanged: "语言已切换为中文。",
   languageUsage: "用法：/lang zh 或 /lang en",
   unknownLanguage: "支持的语言：zh（中文）、en（English）。",
@@ -161,44 +164,44 @@ const zh: LocaleText = {
   limits: (limits) =>
     [
       "当前活动时间限制：",
-      `吃饭 / eat：${limits.eat} 分钟`,
-      `上厕所 / wc：${limits.wc} 分钟`,
-      `抽烟 / smoke：${limits.smoke} 分钟`,
-      `WCD / wcd：${limits.wcd} 分钟`,
+      `吃饭 / eat：${inlineCode(`${limits.eat} 分钟`)}`,
+      `上厕所 / wc：${inlineCode(`${limits.wc} 分钟`)}`,
+      `抽烟 / smoke：${inlineCode(`${limits.smoke} 分钟`)}`,
+      `WCD / wcd：${inlineCode(`${limits.wcd} 分钟`)}`,
     ].join("\n"),
   limitUpdated: (activity, minutes) =>
-    `✅ 已将 ${activity} 的活动时间限制设置为 ${minutes} 分钟。`,
+    `✅ 已将 ${inlineCode(activity)} 的活动时间限制设置为 ${inlineCode(`${minutes} 分钟`)}。`,
 };
 
 const en: LocaleText = {
   title: "Attendance Bot M58",
   help: [
     "Available commands:",
-    "/work — Start work",
-    "/back — Return to seat and settle activity",
-    "/eat — Meal break",
-    "/wc — Toilet",
-    "/smoke — Smoke break",
-    "/wcd — WCD",
-    "/offwork — End work",
-    "/lang en — Switch to English",
-    "/lang zh — Switch to Chinese",
+    `${inlineCode("/work")} — Start work`,
+    `${inlineCode("/back")} — Return to seat and settle activity`,
+    `${inlineCode("/eat")} — Meal break`,
+    `${inlineCode("/wc")} — Toilet`,
+    `${inlineCode("/smoke")} — Smoke break`,
+    `${inlineCode("/wcd")} — WCD`,
+    `${inlineCode("/offwork")} — End work`,
+    `${inlineCode("/lang en")} — Switch to English`,
+    `${inlineCode("/lang zh")} — Switch to Chinese`,
     "",
-    "Use /back when you return.",
+    `Use ${inlineCode("/back")} when you return.`,
   ].join("\n"),
   noActive: "You do not have an active activity to settle.",
   alreadyActive: (activity) =>
-    `⚠️ You are currently on “${activity}”. Use /back before starting another activity.`,
+    `⚠️ You are currently on “${inlineCode(activity)}”. Use ${inlineCode("/back")} before starting another activity.`,
   started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
     const identity = userIdentity(displayName, userId);
     return [
       `User: ${identity.name}`,
       `User ID: ${identity.id}`,
-      `✅ Check-In Succeeded: ${activity} - ${time}`,
-      `This is your ${occurrence}th ${activity} today`,
-      `Activity time limit: ${limitMinutes} minutes`,
+      `✅ Check-In Succeeded: ${inlineCode(activity)} - ${inlineCode(time)}`,
+      `This is your ${inlineCode(`${occurrence}th ${activity}`)} today`,
+      `Activity time limit: ${inlineCode(`${limitMinutes} minutes`)}`,
       "Hint: Please check in when the activity is completed",
-      "Back to Seat: /back",
+      `Back to Seat: ${inlineCode("/back")}`,
     ].join("\n");
   },
   settled: (
@@ -215,24 +218,24 @@ const en: LocaleText = {
     return [
       `User: ${identity.name}`,
       `User ID: ${identity.id}`,
-      `✅ ${startTime} Back to Seat Check-In Succeeded: ${activity}`,
+      `✅ ${inlineCode(startTime)} Back to Seat Check-In Succeeded: ${inlineCode(activity)}`,
       "Hint: This activity's time has been settled.",
       "--------------------",
-      `Time Used for This Activity: ${formatEnglishDuration(durationSeconds)}`,
+      `Time Used for This Activity: ${inlineCode(formatEnglishDuration(durationSeconds))}`,
       "--------------------",
-      `Total ${activity} time today: ${formatEnglishDuration(todayActivitySeconds)}`,
-      `Total time for all activities today: ${formatEnglishDuration(todayTotalSeconds)}`,
+      `Total ${inlineCode(activity)} time today: ${inlineCode(formatEnglishDuration(todayActivitySeconds))}`,
+      `Total time for all activities today: ${inlineCode(formatEnglishDuration(todayTotalSeconds))}`,
       "--------------------",
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
         .map(
           (kind) =>
-            `Today's ${activityLabel(kind, "en")}: ${todayCounts[kind]} times`,
+            `Today's ${activityLabel(kind, "en")}: ${inlineCode(`${todayCounts[kind]} times`)}`,
         ),
     ].join("\n");
   },
-  shiftStarted: (time) => `✅ Work check-in succeeded: ${time}`,
-  shiftEnded: (time) => `✅ Work check-out succeeded: ${time}`,
+  shiftStarted: (time) => `✅ Work check-in succeeded: ${inlineCode(time)}`,
+  shiftEnded: (time) => `✅ Work check-out succeeded: ${inlineCode(time)}`,
   languageChanged: "Language switched to English.",
   languageUsage: "Usage: /lang zh or /lang en",
   unknownLanguage: "Supported languages: zh (中文), en (English).",
@@ -240,19 +243,20 @@ const en: LocaleText = {
   buttons: { wc: "Toilet", smoke: "Smoke", wcd: "WCD", back: "Back" },
   adminOnly: "This command is only available to the bot owner/admins.",
   limitPrivate: "Please use this command in the bot private chat.",
-  limitUsage: "Usage: /limit <eat|wc|smoke|wcd> <minutes>, for example: /limit wc 10",
+  limitUsage:
+    "Usage: /limit <eat|wc|smoke|wcd> <minutes>, for example: /limit wc 10",
   unknownActivity: "Supported activities: eat, wc, smoke, wcd.",
   invalidLimit: "Minutes must be a positive integer.",
   limits: (limits) =>
     [
       "Current activity limits:",
-      `Meal / eat: ${limits.eat} minutes`,
-      `Toilet / wc: ${limits.wc} minutes`,
-      `Smoke / smoke: ${limits.smoke} minutes`,
-      `WCD / wcd: ${limits.wcd} minutes`,
+      `Meal / eat: ${inlineCode(`${limits.eat} minutes`)}`,
+      `Toilet / wc: ${inlineCode(`${limits.wc} minutes`)}`,
+      `Smoke / smoke: ${inlineCode(`${limits.smoke} minutes`)}`,
+      `WCD / wcd: ${inlineCode(`${limits.wcd} minutes`)}`,
     ].join("\n"),
   limitUpdated: (activity, minutes) =>
-    `✅ ${activity} activity limit set to ${minutes} minutes.`,
+    `✅ ${inlineCode(activity)} activity limit set to ${inlineCode(`${minutes} minutes`)}.`,
 };
 
 export const getLocale = (locale: Locale): LocaleText =>
@@ -270,7 +274,8 @@ export const helpText = (locale: Locale): string => getLocale(locale).help;
 
 export const formatUserLine = (
   user: Pick<UserProfile, "displayName" | "username">,
-): string => (user.username ? `${user.displayName} (@${user.username})` : user.displayName);
+): string =>
+  user.username ? `${user.displayName} (@${user.username})` : user.displayName;
 
 export type ActivitySummary = {
   count: number;
@@ -294,7 +299,10 @@ export const summarizeActivity = (
   );
   const activeSeconds =
     active && active.kind === kind
-      ? Math.max(0, Math.floor((endMs - new Date(active.startedAt).getTime()) / 1000))
+      ? Math.max(
+          0,
+          Math.floor((endMs - new Date(active.startedAt).getTime()) / 1000),
+        )
       : 0;
   return {
     count: completed.length + (active?.kind === kind ? 1 : 0),

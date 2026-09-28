@@ -27,6 +27,7 @@ const DEFAULT_ACTIVITY_LIMITS: ActivityLimits = {
 export type BotConfig = {
   token?: string;
   pollIntervalMs: number;
+  telegramRequestTimeoutMs: number;
   activityLimits: ActivityLimits;
   dataPath: string;
   timeZone: string;
@@ -37,6 +38,10 @@ export type BotConfig = {
 export const getBotConfig = (): BotConfig => ({
   token: process.env["TELEGRAM_BOT_TOKEN"]?.trim() || undefined,
   pollIntervalMs: positiveInteger(process.env["BOT_POLL_INTERVAL_MS"], 1_000),
+  telegramRequestTimeoutMs: positiveInteger(
+    process.env["BOT_REQUEST_TIMEOUT_MS"],
+    40_000,
+  ),
   activityLimits: { ...DEFAULT_ACTIVITY_LIMITS },
   dataPath: path.resolve(
     process.env["BOT_DATA_PATH"]?.trim() || "data/m58-bot-state.json",

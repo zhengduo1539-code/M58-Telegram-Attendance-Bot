@@ -13,7 +13,10 @@ type TelegramResponse<T> = {
 export class TelegramClient {
   private readonly baseUrl: string;
 
-  constructor(private readonly token: string) {
+  constructor(
+    private readonly token: string,
+    private readonly requestTimeoutMs: number,
+  ) {
     this.baseUrl = `https://api.telegram.org/bot${token}`;
   }
 
@@ -21,12 +24,38 @@ export class TelegramClient {
     method: string,
     payload: Record<string, unknown> = {},
   ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}/${method}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = (await response.json()) as TelegramResponse<T>;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/${method}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          `Telegram API ${method} timed out after ${this.requestTimeoutMs}ms`,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const rawBody = await response.text();
+    let body: TelegramResponse<T>;
+    try {
+      body = JSON.parse(rawBody) as TelegramResponse<T>;
+    } catch {
+      throw new Error(
+        `Telegram API ${method} returned invalid JSON (HTTP ${response.status})`,
+      );
+    }
+
     if (!response.ok || !body.ok) {
       throw new Error(body.description || `Telegram API ${method} failed`);
     }

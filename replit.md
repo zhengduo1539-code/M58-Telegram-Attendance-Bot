@@ -9,7 +9,7 @@ A modular Telegram group bot for work, break, return-to-seat, and activity-time 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Render env: `TELEGRAM_BOT_TOKEN` is required to enable Telegram polling. The bot time zone is fixed in code as `Asia/Rangoon`. `BOT_OWNER_ID` and comma-separated `ADMIN_IDS` authorize private-chat activity-limit commands. `BOT_DATA_PATH` defaults to `data/m58-bot-state.json`.
+- Render env: `TELEGRAM_BOT_TOKEN` is required to enable Telegram polling. The bot time zone is fixed in code as `Asia/Rangoon`. `BOT_OWNER_ID` and comma-separated `ADMIN_IDS` authorize private-chat activity-limit commands. `BOT_DATA_PATH` defaults to `data/m58-bot-state.json`. `BOT_POLL_INTERVAL_MS` controls retry delay, and `BOT_REQUEST_TIMEOUT_MS` defaults to 40 seconds.
 
 ## Stack
 

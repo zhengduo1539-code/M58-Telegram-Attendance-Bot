@@ -7,6 +7,11 @@ import { setBotStatus } from "./runtime";
 import { FileBotStore } from "./store/file-store";
 import { TelegramClient } from "./telegram-client";
 
+const MAX_START_RETRY_DELAY_MS = 30_000;
+
+const sleep = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
 export const startTelegramBot = async (logger: Logger) => {
   const config = getBotConfig();
   if (!config.token) {
@@ -17,13 +22,32 @@ export const startTelegramBot = async (logger: Logger) => {
     return undefined;
   }
 
-  const store = new FileBotStore(config.dataPath);
-  const attendance = new AttendanceService(store, config);
-  const telegram = new TelegramClient(config.token);
-  const handler = new CommandHandler(telegram, attendance, config);
-  const bot = new TelegramPollingBot(config, logger, handler, telegram);
-  await bot.start();
-  return bot;
+  setBotStatus({ enabled: true, running: false, lastError: undefined });
+
+  let retryDelayMs = config.pollIntervalMs;
+  while (true) {
+    try {
+      const store = new FileBotStore(config.dataPath);
+      const attendance = new AttendanceService(store, config);
+      const telegram = new TelegramClient(
+        config.token,
+        config.telegramRequestTimeoutMs,
+      );
+      const handler = new CommandHandler(telegram, attendance, config);
+      const bot = new TelegramPollingBot(config, logger, handler, telegram);
+      await bot.start();
+      return bot;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      setBotStatus({ enabled: true, running: false, lastError: message });
+      logger.error(
+        { err: error, retryDelayMs },
+        "Telegram bot startup failed; retrying",
+      );
+      await sleep(retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, MAX_START_RETRY_DELAY_MS);
+    }
+  }
 };
 
 export { getBotStatus } from "./runtime";
