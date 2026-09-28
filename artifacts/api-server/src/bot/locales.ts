@@ -51,6 +51,22 @@ type LocaleText = {
   limitUpdated: (activity: string, minutes: number) => string;
 };
 
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const userLink = (text: string, userId: number): string =>
+  `<a href="tg://user?id=${userId}">${escapeHtml(text)}</a>`;
+
+const userIdentity = (displayName: string, userId: number) => ({
+  name: userLink(displayName, userId),
+  id: userLink(String(userId), userId),
+});
+
 const formatChineseDuration = (totalSeconds: number): string => {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(safeSeconds / 3600);
@@ -90,16 +106,18 @@ const zh: LocaleText = {
   noActive: "当前没有正在进行的活动，无需回座结算。",
   alreadyActive: (activity) =>
     `⚠️ 你正在进行「${activity}」，请先使用 /back 回座后再开始新的活动。`,
-  started: (displayName, userId, activity, time, occurrence, limitMinutes) =>
-    [
-      `用户：${displayName}`,
-      `用户标识：${userId}`,
+  started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `用户：${identity.name}`,
+      `用户标识：${identity.id}`,
       `✅ 打卡成功：${activity} - ${time}`,
       `注意：这是第 ${occurrence} 次${activity}`,
       `本次活动时间限制：${limitMinutes} 分钟`,
       "提示：活动完成后请及时打卡回座",
       "回座：/back",
-    ].join("\n"),
+    ].join("\n");
+  },
   settled: (
     displayName,
     userId,
@@ -109,10 +127,11 @@ const zh: LocaleText = {
     todayActivitySeconds,
     todayTotalSeconds,
     todayCounts,
-  ) =>
-    [
-      `用户：${displayName}`,
-      `用户标识：${userId}`,
+  ) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `用户：${identity.name}`,
+      `用户标识：${identity.id}`,
       `✅ ${startTime} 回座打卡成功：${activity}`,
       "提示：本次活动时间已结算。",
       `本次活动耗时：${formatChineseDuration(durationSeconds)}`,
@@ -125,7 +144,8 @@ const zh: LocaleText = {
           (kind) =>
             `本日${activityLabel(kind, "zh")}：${todayCounts[kind]} 次`,
         ),
-    ].join("\n"),
+    ].join("\n");
+  },
   shiftStarted: (time) => `✅ 上班打卡成功：${time}`,
   shiftEnded: (time) => `✅ 下班打卡成功：${time}`,
   languageChanged: "语言已切换为中文。",
@@ -169,16 +189,18 @@ const en: LocaleText = {
   noActive: "You do not have an active activity to settle.",
   alreadyActive: (activity) =>
     `⚠️ You are currently on “${activity}”. Use /back before starting another activity.`,
-  started: (displayName, userId, activity, time, occurrence, limitMinutes) =>
-    [
-      `User: ${displayName}`,
-      `User ID: ${userId}`,
+  started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `User: ${identity.name}`,
+      `User ID: ${identity.id}`,
       `✅ Check-In Succeeded: ${activity} - ${time}`,
       `This is your ${occurrence}th ${activity} today`,
       `Activity time limit: ${limitMinutes} minutes`,
       "Hint: Please check in when the activity is completed",
       "Back to Seat: /back",
-    ].join("\n"),
+    ].join("\n");
+  },
   settled: (
     displayName,
     userId,
@@ -188,10 +210,11 @@ const en: LocaleText = {
     todayActivitySeconds,
     todayTotalSeconds,
     todayCounts,
-  ) =>
-    [
-      `User: ${displayName}`,
-      `User ID: ${userId}`,
+  ) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `User: ${identity.name}`,
+      `User ID: ${identity.id}`,
       `✅ ${startTime} Back to Seat Check-In Succeeded: ${activity}`,
       "Hint: This activity's time has been settled.",
       "--------------------",
@@ -206,7 +229,8 @@ const en: LocaleText = {
           (kind) =>
             `Today's ${activityLabel(kind, "en")}: ${todayCounts[kind]} times`,
         ),
-    ].join("\n"),
+    ].join("\n");
+  },
   shiftStarted: (time) => `✅ Work check-in succeeded: ${time}`,
   shiftEnded: (time) => `✅ Work check-out succeeded: ${time}`,
   languageChanged: "Language switched to English.",

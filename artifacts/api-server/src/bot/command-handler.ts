@@ -106,6 +106,8 @@ export class CommandHandler {
           command.argument
             ? getLocale(currentLocale).unknownLanguage
             : getLocale(currentLocale).languageUsage,
+          undefined,
+          message.message_id,
         );
         return;
       }
@@ -116,6 +118,7 @@ export class CommandHandler {
         message.chat.id,
         `${getLocale(command.argument).languageChanged}\n\n${getLocale(command.argument).help}`,
         keyboard(command.argument),
+        message.message_id,
       );
       return;
     }
@@ -159,7 +162,12 @@ export class CommandHandler {
       default:
         response = text.unknownCommand;
     }
-    await this.telegram.sendMessage(message.chat.id, response, markup);
+    await this.telegram.sendMessage(
+      message.chat.id,
+      response,
+      markup,
+      message.message_id,
+    );
   }
 
   private async handleLimitCommand(

@@ -45,11 +45,21 @@ export class TelegramClient {
     chatId: number,
     text: string,
     replyMarkup?: InlineKeyboardMarkup | ReplyKeyboardMarkup,
+    replyToMessageId?: number,
   ) {
     return this.call("sendMessage", {
       chat_id: chatId,
       text,
+      parse_mode: "HTML",
       ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+      ...(replyToMessageId
+        ? {
+            reply_parameters: {
+              message_id: replyToMessageId,
+              allow_sending_without_reply: true,
+            },
+          }
+        : {}),
     });
   }
 
