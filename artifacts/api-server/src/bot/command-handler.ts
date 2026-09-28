@@ -55,6 +55,9 @@ const keyboard = (locale: Locale): ReplyKeyboardMarkup => {
     ],
     resize_keyboard: true,
     is_persistent: true,
+    one_time_keyboard: false,
+    input_field_placeholder:
+      locale === "en" ? "Tap a button to check in" : "请直接点击按钮打卡",
   };
 };
 

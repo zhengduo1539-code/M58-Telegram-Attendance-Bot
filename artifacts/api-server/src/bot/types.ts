@@ -95,4 +95,5 @@ export type ReplyKeyboardMarkup = {
   resize_keyboard?: boolean;
   is_persistent?: boolean;
   one_time_keyboard?: boolean;
+  input_field_placeholder?: string;
 };
