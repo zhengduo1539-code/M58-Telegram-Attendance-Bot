@@ -56,7 +56,6 @@ export class TelegramClient {
         ? {
             reply_parameters: {
               message_id: replyToMessageId,
-              quote: true,
               allow_sending_without_reply: true,
             },
           }
