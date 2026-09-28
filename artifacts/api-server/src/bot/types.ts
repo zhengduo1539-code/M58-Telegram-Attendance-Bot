@@ -88,6 +88,7 @@ export type InlineKeyboardMarkup = {
 
 export type ReplyKeyboardButton = {
   text: string;
+  style?: "danger" | "success" | "primary";
 };
 
 export type ReplyKeyboardMarkup = {
