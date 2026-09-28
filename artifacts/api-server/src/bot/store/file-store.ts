@@ -7,6 +7,7 @@ const emptyState = (): BotState => ({
   users: {},
   activeActivities: {},
   records: [],
+  activityLimits: {},
 });
 
 const isBotState = (value: unknown): value is BotState => {

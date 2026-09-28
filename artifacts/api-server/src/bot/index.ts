@@ -20,7 +20,7 @@ export const startTelegramBot = async (logger: Logger) => {
   const store = new FileBotStore(config.dataPath);
   const attendance = new AttendanceService(store, config);
   const telegram = new TelegramClient(config.token);
-  const handler = new CommandHandler(telegram, attendance);
+  const handler = new CommandHandler(telegram, attendance, config);
   const bot = new TelegramPollingBot(config, logger, handler, telegram);
   await bot.start();
   return bot;

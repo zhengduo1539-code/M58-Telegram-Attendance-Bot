@@ -9,7 +9,7 @@ A modular Telegram group bot for work, break, return-to-seat, and activity-time 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Render env: `TELEGRAM_BOT_TOKEN` is required to enable Telegram polling. `BOT_TIME_ZONE` defaults to `Asia/Rangoon`, `ACTIVITY_LIMIT_MINUTES` defaults to `15`, and `BOT_DATA_PATH` defaults to `data/m58-bot-state.json`.
+- Render env: `TELEGRAM_BOT_TOKEN` is required to enable Telegram polling. The bot time zone is fixed in code as `Asia/Rangoon`. `BOT_OWNER_ID` and comma-separated `ADMIN_IDS` authorize private-chat activity-limit commands. `BOT_DATA_PATH` defaults to `data/m58-bot-state.json`.
 
 ## Stack
 
@@ -39,6 +39,7 @@ A modular Telegram group bot for work, break, return-to-seat, and activity-time 
 - Inline activity buttons for toilet, smoke, WCD, and return-to-seat.
 - Activity duration, daily count, daily activity total, and daily all-activity total in each settlement response.
 - `/lang zh` and `/lang en` language switching.
+- Bot owner/admins can use `/limits` or `/limit wc 10` in the bot private chat. Defaults are eat 30 minutes, wc 10 minutes, smoke 10 minutes, and wcd 15 minutes; overrides are stored in the bot state file.
 
 ## User preferences
 

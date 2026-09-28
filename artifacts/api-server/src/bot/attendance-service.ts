@@ -2,12 +2,12 @@ import type { BotConfig } from "./config";
 import {
   activityLabel,
   getLocale,
-  summarizeActivity,
   type ActivitySummary,
 } from "./locales";
 import type {
   ActivityKind,
   ActiveActivity,
+  ActivityLimits,
   BotState,
   Locale,
   UserProfile,
@@ -135,13 +135,18 @@ export class AttendanceService {
         displayName: profile.displayName,
         kind,
         startedAt: now.toISOString(),
-        limitMinutes: this.config.activityLimitMinutes,
+        limitMinutes:
+          state.activityLimits?.[kind] || this.config.activityLimits[kind],
       };
+      const limitMinutes =
+        state.activityLimits?.[kind] || this.config.activityLimits[kind];
       response = text.started(
+        profile.displayName,
+        profile.userId,
         activityLabel(kind, locale),
         formatDateTime(now, this.config.timeZone),
         occurrence,
-        this.config.activityLimitMinutes,
+        limitMinutes,
       );
     });
     return response;
@@ -204,13 +209,29 @@ export class AttendanceService {
         (total, record) => total + record.elapsedSeconds,
         0,
       );
+      const todayCounts = trackedActivities.reduce(
+        (counts, kind) => {
+          counts[kind] = matchingRecords.filter(
+            (record) => record.kind === kind,
+          ).length;
+          return counts;
+        },
+        {
+          eat: 0,
+          wc: 0,
+          smoke: 0,
+          wcd: 0,
+        } as Record<ActivityKind, number>,
+      );
       response = text.settled(
+        active.displayName,
+        active.userId,
         activityLabel(active.kind, locale),
         formatDateTime(new Date(active.startedAt), this.config.timeZone),
-        formatDuration(elapsedSeconds),
-        formatDuration(activitySummary.seconds),
-        formatDuration(totalSeconds),
-        activitySummary.count,
+        elapsedSeconds,
+        activitySummary.seconds,
+        totalSeconds,
+        todayCounts,
       );
     });
     return response;
@@ -218,6 +239,27 @@ export class AttendanceService {
 
   async offWork(profile: Omit<UserProfile, "createdAt" | "updatedAt">) {
     return this.settle(profile, "offwork");
+  }
+
+  async getActivityLimits(): Promise<ActivityLimits> {
+    const state = await this.store.load();
+    return {
+      ...this.config.activityLimits,
+      ...state.activityLimits,
+    };
+  }
+
+  async setActivityLimit(kind: ActivityKind, minutes: number): Promise<ActivityLimits> {
+    let limits: ActivityLimits = { ...this.config.activityLimits };
+    await this.store.update((state) => {
+      limits = {
+        ...this.config.activityLimits,
+        ...state.activityLimits,
+        [kind]: minutes,
+      };
+      state.activityLimits = limits;
+    });
+    return limits;
   }
 
   async active(

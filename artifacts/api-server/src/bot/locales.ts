@@ -2,6 +2,7 @@ import type {
   ActivityKind,
   ActiveActivity,
   ActivityRecord,
+  ActivityLimits,
   Locale,
   UserProfile,
 } from "./types";
@@ -12,18 +13,22 @@ type LocaleText = {
   noActive: string;
   alreadyActive: (activity: string) => string;
   started: (
+    displayName: string,
+    userId: number,
     activity: string,
     time: string,
     occurrence: number,
     limitMinutes: number,
   ) => string;
   settled: (
+    displayName: string,
+    userId: number,
     activity: string,
     startTime: string,
-    duration: string,
-    todayActivityTime: string,
-    todayTotalTime: string,
-    todayCount: number,
+    durationSeconds: number,
+    todayActivitySeconds: number,
+    todayTotalSeconds: number,
+    todayCounts: Record<ActivityKind, number>,
   ) => string;
   shiftStarted: (time: string) => string;
   shiftEnded: (time: string) => string;
@@ -37,6 +42,33 @@ type LocaleText = {
     wcd: string;
     back: string;
   };
+  adminOnly: string;
+  limitPrivate: string;
+  limitUsage: string;
+  unknownActivity: string;
+  invalidLimit: string;
+  limits: (limits: ActivityLimits) => string;
+  limitUpdated: (activity: string, minutes: number) => string;
+};
+
+const formatChineseDuration = (totalSeconds: number): string => {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  return hours > 0
+    ? `${hours} 小时 ${minutes} 分钟 ${seconds} 秒`
+    : `${minutes} 分钟 ${seconds} 秒`;
+};
+
+const formatEnglishDuration = (totalSeconds: number): string => {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
 };
 
 const zh: LocaleText = {
@@ -53,34 +85,48 @@ const zh: LocaleText = {
     "/lang en — 切换英文",
     "/lang zh — 切换中文",
     "",
-    "活动开始后请在回座时使用 /back。默认活动时间限制为 15 分钟。",
+    "Bot owner/admin 可在 Bot 私聊中使用 /limits，或使用 /limit wc 10 设置活动时间限制。",
+    "",
+    "活动开始后请在回座时使用 /back。各活动的时间限制可使用 /limits 查看。",
   ].join("\n"),
   noActive: "当前没有正在进行的活动，无需回座结算。",
   alreadyActive: (activity) =>
     `⚠️ 你正在进行「${activity}」，请先使用 /back 回座后再开始新的活动。`,
-  started: (activity, time, occurrence, limitMinutes) =>
+  started: (displayName, userId, activity, time, occurrence, limitMinutes) =>
     [
+      `用户：${displayName}`,
+      `用户标识：${userId}`,
       `✅ 打卡成功：${activity} - ${time}`,
-      `注意：这是第 ${occurrence} 次 ${activity}`,
+      `注意：这是第 ${occurrence} 次${activity}`,
       `本次活动时间限制：${limitMinutes} 分钟`,
       "提示：活动完成后请及时打卡回座",
       "回座：/back",
     ].join("\n"),
   settled: (
+    displayName,
+    userId,
     activity,
     startTime,
-    duration,
-    todayActivityTime,
-    todayTotalTime,
-    todayCount,
+    durationSeconds,
+    todayActivitySeconds,
+    todayTotalSeconds,
+    todayCounts,
   ) =>
     [
+      `用户：${displayName}`,
+      `用户标识：${userId}`,
       `✅ ${startTime} 回座打卡成功：${activity}`,
       "提示：本次活动时间已结算。",
-      `本次活动耗时：${duration}`,
-      `${activity} 今日累计时间：${todayActivityTime}`,
-      `今日全部活动累计时间：${todayTotalTime}`,
-      `今日 ${activity}：${todayCount} 次`,
+      `本次活动耗时：${formatChineseDuration(durationSeconds)}`,
+      `今日累计${activity}时间：${formatChineseDuration(todayActivitySeconds)}`,
+      `今日累计活动总时间：${formatChineseDuration(todayTotalSeconds)}`,
+      "--------------------",
+      ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
+        .filter((kind) => todayCounts[kind] > 0)
+        .map(
+          (kind) =>
+            `本日${activityLabel(kind, "zh")}：${todayCounts[kind]} 次`,
+        ),
     ].join("\n"),
   shiftStarted: (time) => `✅ 上班打卡成功：${time}`,
   shiftEnded: (time) => `✅ 下班打卡成功：${time}`,
@@ -89,6 +135,21 @@ const zh: LocaleText = {
   unknownLanguage: "支持的语言：zh（中文）、en（English）。",
   unknownCommand: "未知命令。请使用 /help 查看可用命令。",
   buttons: { wc: "上厕所", smoke: "抽烟", wcd: "WCD", back: "回座" },
+  adminOnly: "此命令仅限 Bot owner/admin 使用。",
+  limitPrivate: "请在 Bot 私聊中使用此命令。",
+  limitUsage: "用法：/limit <eat|wc|smoke|wcd> <分钟数>，例如：/limit wc 10",
+  unknownActivity: "支持的 activity：eat、wc、smoke、wcd。",
+  invalidLimit: "分钟数必须是大于 0 的整数。",
+  limits: (limits) =>
+    [
+      "当前活动时间限制：",
+      `吃饭 / eat：${limits.eat} 分钟`,
+      `上厕所 / wc：${limits.wc} 分钟`,
+      `抽烟 / smoke：${limits.smoke} 分钟`,
+      `WCD / wcd：${limits.wcd} 分钟`,
+    ].join("\n"),
+  limitUpdated: (activity, minutes) =>
+    `✅ 已将 ${activity} 的活动时间限制设置为 ${minutes} 分钟。`,
 };
 
 const en: LocaleText = {
@@ -105,34 +166,50 @@ const en: LocaleText = {
     "/lang en — Switch to English",
     "/lang zh — Switch to Chinese",
     "",
-    "Use /back when you return. The default activity limit is 15 minutes.",
+    "Bot owners/admins can use /limits or /limit wc 10 in the bot private chat.",
+    "",
+    "Use /back when you return. Use /limits to view the limit for each activity.",
   ].join("\n"),
   noActive: "You do not have an active activity to settle.",
   alreadyActive: (activity) =>
     `⚠️ You are currently on “${activity}”. Use /back before starting another activity.`,
-  started: (activity, time, occurrence, limitMinutes) =>
+  started: (displayName, userId, activity, time, occurrence, limitMinutes) =>
     [
-      `✅ Check-in succeeded: ${activity} - ${time}`,
+      `User: ${displayName}`,
+      `User ID: ${userId}`,
+      `✅ Check-In Succeeded: ${activity} - ${time}`,
       `This is your ${occurrence}th ${activity} today`,
       `Activity time limit: ${limitMinutes} minutes`,
-      "Please use /back when you return to your seat",
-      "Back: /back",
+      "Hint: Please check in when the activity is completed",
+      "Back to Seat: /back",
     ].join("\n"),
   settled: (
+    displayName,
+    userId,
     activity,
     startTime,
-    duration,
-    todayActivityTime,
-    todayTotalTime,
-    todayCount,
+    durationSeconds,
+    todayActivitySeconds,
+    todayTotalSeconds,
+    todayCounts,
   ) =>
     [
-      `✅ ${startTime} Return-to-seat succeeded: ${activity}`,
-      "This activity has been settled.",
-      `Activity duration: ${duration}`,
-      `Today's ${activity} time: ${todayActivityTime}`,
-      `Total activity time today: ${todayTotalTime}`,
-      `Today's ${activity} count: ${todayCount}`,
+      `User: ${displayName}`,
+      `User ID: ${userId}`,
+      `✅ ${startTime} Back to Seat Check-In Succeeded: ${activity}`,
+      "Hint: This activity's time has been settled.",
+      "--------------------",
+      `Time Used for This Activity: ${formatEnglishDuration(durationSeconds)}`,
+      "--------------------",
+      `Total ${activity} time today: ${formatEnglishDuration(todayActivitySeconds)}`,
+      `Total time for all activities today: ${formatEnglishDuration(todayTotalSeconds)}`,
+      "--------------------",
+      ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
+        .filter((kind) => todayCounts[kind] > 0)
+        .map(
+          (kind) =>
+            `Today's ${activityLabel(kind, "en")}: ${todayCounts[kind]} times`,
+        ),
     ].join("\n"),
   shiftStarted: (time) => `✅ Work check-in succeeded: ${time}`,
   shiftEnded: (time) => `✅ Work check-out succeeded: ${time}`,
@@ -141,6 +218,21 @@ const en: LocaleText = {
   unknownLanguage: "Supported languages: zh (中文), en (English).",
   unknownCommand: "Unknown command. Use /help to see available commands.",
   buttons: { wc: "Toilet", smoke: "Smoke", wcd: "WCD", back: "Back" },
+  adminOnly: "This command is only available to the bot owner/admins.",
+  limitPrivate: "Please use this command in the bot private chat.",
+  limitUsage: "Usage: /limit <eat|wc|smoke|wcd> <minutes>, for example: /limit wc 10",
+  unknownActivity: "Supported activities: eat, wc, smoke, wcd.",
+  invalidLimit: "Minutes must be a positive integer.",
+  limits: (limits) =>
+    [
+      "Current activity limits:",
+      `Meal / eat: ${limits.eat} minutes`,
+      `Toilet / wc: ${limits.wc} minutes`,
+      `Smoke / smoke: ${limits.smoke} minutes`,
+      `WCD / wcd: ${limits.wcd} minutes`,
+    ].join("\n"),
+  limitUpdated: (activity, minutes) =>
+    `✅ ${activity} activity limit set to ${minutes} minutes.`,
 };
 
 export const getLocale = (locale: Locale): LocaleText =>
@@ -149,7 +241,7 @@ export const getLocale = (locale: Locale): LocaleText =>
 export const activityLabel = (kind: ActivityKind, locale: Locale): string => {
   const labels = {
     zh: { eat: "吃饭", wc: "上厕所", smoke: "抽烟", wcd: "WCD" },
-    en: { eat: "Meal", wc: "Toilet", smoke: "Smoke", wcd: "WCD" },
+    en: { eat: "Meal", wc: "Toilet", smoke: "Smoke", wcd: "Big toilet" },
   };
   return labels[locale][kind];
 };

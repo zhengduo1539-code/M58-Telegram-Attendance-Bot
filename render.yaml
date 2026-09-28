@@ -9,9 +9,9 @@ services:
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: BOT_TIME_ZONE
-        value: Asia/Rangoon
-      - key: ACTIVITY_LIMIT_MINUTES
-        value: "15"
+      - key: BOT_OWNER_ID
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
       - key: BOT_DATA_PATH
         value: data/m58-bot-state.json

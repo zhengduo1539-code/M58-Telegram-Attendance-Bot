@@ -1,4 +1,8 @@
-import type { InlineKeyboardMarkup, TelegramUpdate } from "./types";
+import type {
+  InlineKeyboardMarkup,
+  ReplyKeyboardMarkup,
+  TelegramUpdate,
+} from "./types";
 
 type TelegramResponse<T> = {
   ok: boolean;
@@ -37,7 +41,11 @@ export class TelegramClient {
     });
   }
 
-  sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup) {
+  sendMessage(
+    chatId: number,
+    text: string,
+    replyMarkup?: InlineKeyboardMarkup | ReplyKeyboardMarkup,
+  ) {
     return this.call("sendMessage", {
       chat_id: chatId,
       text,
@@ -67,6 +75,8 @@ export class TelegramClient {
         { command: "offwork", description: "下班 / End work" },
         { command: "help", description: "帮助 / Help" },
         { command: "lang", description: "语言 / Language" },
+        { command: "limits", description: "活动限制 / Activity limits" },
+        { command: "limit", description: "设置限制 / Set activity limit" },
       ],
     });
   }

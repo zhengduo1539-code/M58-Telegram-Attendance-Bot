@@ -2,6 +2,8 @@ export type Locale = "zh" | "en";
 
 export type ActivityKind = "eat" | "wc" | "smoke" | "wcd";
 
+export type ActivityLimits = Record<ActivityKind, number>;
+
 export type UserProfile = {
   chatId: number;
   userId: number;
@@ -37,6 +39,7 @@ export type BotState = {
   users: Record<string, UserProfile>;
   activeActivities: Record<string, ActiveActivity>;
   records: ActivityRecord[];
+  activityLimits?: Partial<ActivityLimits>;
 };
 
 export type TelegramUser = {
@@ -81,4 +84,15 @@ export type InlineKeyboardButton = {
 
 export type InlineKeyboardMarkup = {
   inline_keyboard: InlineKeyboardButton[][];
+};
+
+export type ReplyKeyboardButton = {
+  text: string;
+};
+
+export type ReplyKeyboardMarkup = {
+  keyboard: ReplyKeyboardButton[][];
+  resize_keyboard?: boolean;
+  is_persistent?: boolean;
+  one_time_keyboard?: boolean;
 };

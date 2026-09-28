@@ -1,8 +1,10 @@
 import type { AttendanceService } from "./attendance-service";
+import type { BotConfig } from "./config";
 import { activityLabel, getLocale } from "./locales";
 import type {
-  InlineKeyboardMarkup,
+  ActivityKind,
   Locale,
+  ReplyKeyboardMarkup,
   TelegramCallbackQuery,
   TelegramMessage,
   TelegramUpdate,
@@ -40,24 +42,41 @@ const profileFromUser = (
   };
 };
 
-const keyboard = (locale: Locale): InlineKeyboardMarkup => {
+const keyboard = (locale: Locale): ReplyKeyboardMarkup => {
   const text = getLocale(locale).buttons;
   return {
-    inline_keyboard: [
+    keyboard: [
       [
-        { text: text.wc, callback_data: "activity:wc" },
-        { text: text.smoke, callback_data: "activity:smoke" },
-        { text: text.wcd, callback_data: "activity:wcd" },
+        { text: text.wc },
+        { text: text.smoke },
+        { text: text.wcd },
       ],
-      [{ text: text.back, callback_data: "activity:back" }],
+      [{ text: text.back }],
     ],
+    resize_keyboard: true,
+    is_persistent: true,
   };
+};
+
+const buttonCommand = (value: string): Command | undefined => {
+  const commands: Record<string, string> = {
+    "上厕所": "wc",
+    "抽烟": "smoke",
+    WCD: "wcd",
+    回座: "back",
+    Toilet: "wc",
+    Smoke: "smoke",
+    Back: "back",
+  };
+  const name = commands[value.trim()];
+  return name ? { name } : undefined;
 };
 
 export class CommandHandler {
   constructor(
     private readonly telegram: TelegramClient,
     private readonly attendance: AttendanceService,
+    private readonly config: BotConfig,
   ) {}
 
   async handleUpdate(update: TelegramUpdate): Promise<void> {
@@ -70,7 +89,7 @@ export class CommandHandler {
 
   private async handleMessage(message: TelegramMessage) {
     if (!message.text || !message.from || message.from.is_bot) return;
-    const command = parseCommand(message.text);
+    const command = parseCommand(message.text) || buttonCommand(message.text);
     if (!command) return;
 
     const currentLocale = await this.attendance.getLocale(
@@ -103,7 +122,7 @@ export class CommandHandler {
     const locale = profile.locale;
     const text = getLocale(locale);
     let response: string | undefined;
-    let markup: InlineKeyboardMarkup | undefined;
+    let markup: ReplyKeyboardMarkup | undefined;
 
     switch (command.name) {
       case "start":
@@ -113,6 +132,7 @@ export class CommandHandler {
         break;
       case "work":
         response = await this.attendance.startShift(profile);
+        markup = keyboard(locale);
         break;
       case "back":
         response = await this.attendance.settle(profile);
@@ -129,10 +149,45 @@ export class CommandHandler {
         response = await this.attendance.offWork(profile);
         markup = keyboard(locale);
         break;
+      case "limits":
+      case "limit":
+        response = await this.handleLimitCommand(message, profile, command.argument);
+        break;
       default:
         response = text.unknownCommand;
     }
     await this.telegram.sendMessage(message.chat.id, response, markup);
+  }
+
+  private async handleLimitCommand(
+    message: TelegramMessage,
+    profile: Omit<UserProfile, "createdAt" | "updatedAt">,
+    argument: string | undefined,
+  ): Promise<string> {
+    const text = getLocale(profile.locale);
+    const isAdmin =
+      this.config.botOwnerId === profile.userId ||
+      this.config.adminIds.includes(profile.userId);
+    if (!isAdmin) return text.adminOnly;
+    if (message.chat.type !== "private") return text.limitPrivate;
+
+    const parts = argument?.split(/\s+/).filter(Boolean) || [];
+    if (parts.length === 0) {
+      return text.limits(await this.attendance.getActivityLimits());
+    }
+    if (parts.length !== 2) return text.limitUsage;
+
+    const kind = parts[0] as ActivityKind;
+    if (!["eat", "wc", "smoke", "wcd"].includes(kind)) {
+      return text.unknownActivity;
+    }
+    const minutes = Number(parts[1]);
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      return text.invalidLimit;
+    }
+
+    await this.attendance.setActivityLimit(kind, minutes);
+    return text.limitUpdated(activityLabel(kind, profile.locale), minutes);
   }
 
   private async handleCallback(callback: TelegramCallbackQuery) {
@@ -140,10 +195,6 @@ export class CommandHandler {
     const message = callback.message;
     const action = callback.data?.split(":")[1];
     if (!message || !action || !callback.from || callback.from.is_bot) return;
-    const currentLocale = await this.attendance.getLocale(
-      message.chat.id,
-      callback.from.id,
-    );
     const syntheticMessage: TelegramMessage = {
       message_id: message.message_id,
       chat: message.chat,
