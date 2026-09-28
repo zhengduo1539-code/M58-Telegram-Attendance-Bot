@@ -65,6 +65,8 @@ const userLink = (text: string, userId: number): string =>
 const inlineCode = (value: string | number): string =>
   `<code>${escapeHtml(String(value))}</code>`;
 
+const divider = inlineCode("--------------------");
+
 const userIdentity = (displayName: string, userId: number) => ({
   name: userLink(displayName, userId),
   id: inlineCode(userId),
@@ -140,7 +142,7 @@ const zh: LocaleText = {
       `本次活动耗时：${inlineCode(formatChineseDuration(durationSeconds))}`,
       `今日累计${inlineCode(activity)}时间：${inlineCode(formatChineseDuration(todayActivitySeconds))}`,
       `今日累计活动总时间：${inlineCode(formatChineseDuration(todayTotalSeconds))}`,
-      "--------------------",
+      divider,
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
         .map(
@@ -197,10 +199,14 @@ const en: LocaleText = {
     return [
       `User: ${identity.name}`,
       `User ID: ${identity.id}`,
+      divider,
       `✅ Check-In Succeeded: ${inlineCode(activity)} - ${inlineCode(time)}`,
-      `This is your ${inlineCode(`${occurrence}th ${activity}`)} today`,
-      `Activity time limit: ${inlineCode(`${limitMinutes} minutes`)}`,
-      "Hint: Please check in when the activity is completed",
+      `Attention: This is your ${inlineCode(`${occurrence} time ${activity}`)}.`,
+      divider,
+      `Time Limit for This Activity: ${inlineCode(`${limitMinutes} minute`)}`,
+      divider,
+      "Tip: Please check in Back to seat after completing the activity.",
+      divider,
       `Back to Seat: ${inlineCode("/back")}`,
     ].join("\n");
   },
@@ -218,14 +224,16 @@ const en: LocaleText = {
     return [
       `User: ${identity.name}`,
       `User ID: ${identity.id}`,
+      divider,
       `✅ ${inlineCode(startTime)} Back to Seat Check-In Succeeded: ${inlineCode(activity)}`,
+      divider,
       "Hint: This activity's time has been settled.",
-      "--------------------",
+      divider,
       `Time Used for This Activity: ${inlineCode(formatEnglishDuration(durationSeconds))}`,
-      "--------------------",
+      divider,
       `Total ${inlineCode(activity)} time today: ${inlineCode(formatEnglishDuration(todayActivitySeconds))}`,
       `Total time for all activities today: ${inlineCode(formatEnglishDuration(todayTotalSeconds))}`,
-      "--------------------",
+      divider,
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
         .map(
