@@ -85,9 +85,7 @@ const zh: LocaleText = {
     "/lang en — 切换英文",
     "/lang zh — 切换中文",
     "",
-    "Bot owner/admin 可在 Bot 私聊中使用 /limits，或使用 /limit wc 10 设置活动时间限制。",
-    "",
-    "活动开始后请在回座时使用 /back。各活动的时间限制可使用 /limits 查看。",
+    "活动开始后请在回座时使用 /back。",
   ].join("\n"),
   noActive: "当前没有正在进行的活动，无需回座结算。",
   alreadyActive: (activity) =>
@@ -166,9 +164,7 @@ const en: LocaleText = {
     "/lang en — Switch to English",
     "/lang zh — Switch to Chinese",
     "",
-    "Bot owners/admins can use /limits or /limit wc 10 in the bot private chat.",
-    "",
-    "Use /back when you return. Use /limits to view the limit for each activity.",
+    "Use /back when you return.",
   ].join("\n"),
   noActive: "You do not have an active activity to settle.",
   alreadyActive: (activity) =>

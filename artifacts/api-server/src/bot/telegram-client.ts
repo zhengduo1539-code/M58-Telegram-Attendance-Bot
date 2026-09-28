@@ -75,8 +75,6 @@ export class TelegramClient {
         { command: "offwork", description: "下班 / End work" },
         { command: "help", description: "帮助 / Help" },
         { command: "lang", description: "语言 / Language" },
-        { command: "limits", description: "活动限制 / Activity limits" },
-        { command: "limit", description: "设置限制 / Set activity limit" },
       ],
     });
   }
