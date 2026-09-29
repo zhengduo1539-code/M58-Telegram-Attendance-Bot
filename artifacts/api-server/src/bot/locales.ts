@@ -26,6 +26,7 @@ type LocaleText = {
     activity: string,
     startTime: string,
     durationSeconds: number,
+    limitMinutes: number,
     todayActivitySeconds: number,
     todayTotalSeconds: number,
     todayCounts: Record<ActivityKind, number>,
@@ -77,9 +78,10 @@ const formatChineseDuration = (totalSeconds: number): string => {
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
   const seconds = safeSeconds % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
   return hours > 0
-    ? `${hours} 小时 ${minutes} 分钟 ${seconds} 秒`
-    : `${minutes} 分钟 ${seconds} 秒`;
+    ? `${pad(hours)} 小时 ${pad(minutes)} 分钟 ${pad(seconds)} 秒`
+    : `${pad(minutes)} 分钟 ${pad(seconds)} 秒`;
 };
 
 const formatEnglishDuration = (totalSeconds: number): string => {
@@ -91,6 +93,9 @@ const formatEnglishDuration = (totalSeconds: number): string => {
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
 };
+
+const getTimeoutSeconds = (durationSeconds: number, limitMinutes: number) =>
+  Math.max(0, Math.floor(durationSeconds - limitMinutes * 60));
 
 const zh: LocaleText = {
   title: "打卡机器人 M58",
@@ -129,11 +134,13 @@ const zh: LocaleText = {
     activity,
     startTime,
     durationSeconds,
+    limitMinutes,
     todayActivitySeconds,
     todayTotalSeconds,
     todayCounts,
   ) => {
     const identity = userIdentity(displayName, userId);
+    const timeoutSeconds = getTimeoutSeconds(durationSeconds, limitMinutes);
     return [
       `用户：${identity.name}`,
       `用户标识：${identity.id}`,
@@ -142,6 +149,12 @@ const zh: LocaleText = {
       `本次活动耗时：${inlineCode(formatChineseDuration(durationSeconds))}`,
       `今日累计${inlineCode(activity)}时间：${inlineCode(formatChineseDuration(todayActivitySeconds))}`,
       `今日累计活动总时间：${inlineCode(formatChineseDuration(todayTotalSeconds))}`,
+      ...(timeoutSeconds > 0
+        ? [
+            "⚠️ 警告：本次活动已超时！",
+            `超时时间：${inlineCode(formatChineseDuration(timeoutSeconds))}`,
+          ]
+        : []),
       divider,
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
@@ -154,8 +167,8 @@ const zh: LocaleText = {
   shiftStarted: (time) => `✅ 上班打卡成功：${inlineCode(time)}`,
   shiftEnded: (time) => `✅ 下班打卡成功：${inlineCode(time)}`,
   languageChanged: "语言已切换为中文。",
-  languageUsage: "用法：/lang zh 或 /lang en",
-  unknownLanguage: "支持的语言：zh（中文）、en（English）。",
+  languageUsage: "用法：/lang zh 或 /lang en（/lang eng 也可以）",
+  unknownLanguage: "支持的语言：zh（中文）、en/eng（English）。",
   unknownCommand: "未知命令。请使用 /help 查看可用命令。",
   buttons: { wc: "上厕所", smoke: "抽烟", wcd: "WCD", back: "回座" },
   adminOnly: "此命令仅限 Bot owner/admin 使用。",
@@ -216,11 +229,13 @@ const en: LocaleText = {
     activity,
     startTime,
     durationSeconds,
+    limitMinutes,
     todayActivitySeconds,
     todayTotalSeconds,
     todayCounts,
   ) => {
     const identity = userIdentity(displayName, userId);
+    const timeoutSeconds = getTimeoutSeconds(durationSeconds, limitMinutes);
     return [
       `User: ${identity.name}`,
       `User ID: ${identity.id}`,
@@ -233,6 +248,12 @@ const en: LocaleText = {
       divider,
       `Total ${inlineCode(activity)} time today: ${inlineCode(formatEnglishDuration(todayActivitySeconds))}`,
       `Total time for all activities today: ${inlineCode(formatEnglishDuration(todayTotalSeconds))}`,
+      ...(timeoutSeconds > 0
+        ? [
+            "⚠️ Warning: You have exceeded the time limit for this activity!",
+            `Timeout duration for Activity: ${inlineCode(formatEnglishDuration(timeoutSeconds))}`,
+          ]
+        : []),
       divider,
       ...(["wc", "smoke", "wcd", "eat"] as ActivityKind[])
         .filter((kind) => todayCounts[kind] > 0)
@@ -245,8 +266,8 @@ const en: LocaleText = {
   shiftStarted: (time) => `✅ Work check-in succeeded: ${inlineCode(time)}`,
   shiftEnded: (time) => `✅ Work check-out succeeded: ${inlineCode(time)}`,
   languageChanged: "Language switched to English.",
-  languageUsage: "Usage: /lang zh or /lang en",
-  unknownLanguage: "Supported languages: zh (中文), en (English).",
+  languageUsage: "Usage: /lang zh or /lang en (/lang eng also works)",
+  unknownLanguage: "Supported languages: zh (中文), en/eng (English).",
   unknownCommand: "Unknown command. Use /help to see available commands.",
   buttons: { wc: "Toilet", smoke: "Smoke", wcd: "WCD", back: "Back" },
   adminOnly: "This command is only available to the bot owner/admins.",

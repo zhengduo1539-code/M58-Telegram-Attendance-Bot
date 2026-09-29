@@ -229,6 +229,7 @@ export class AttendanceService {
         activityLabel(active.kind, locale),
         formatDateTime(new Date(active.startedAt), this.config.timeZone),
         elapsedSeconds,
+        active.limitMinutes,
         activitySummary.seconds,
         totalSeconds,
         todayCounts,

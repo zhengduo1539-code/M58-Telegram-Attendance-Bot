@@ -100,7 +100,9 @@ export class CommandHandler {
       message.from.id,
     );
     if (command.name === "lang" || command.name === "language") {
-      if (command.argument !== "zh" && command.argument !== "en") {
+      const requestedLocale =
+        command.argument === "eng" ? "en" : command.argument;
+      if (requestedLocale !== "zh" && requestedLocale !== "en") {
         await this.telegram.sendMessage(
           message.chat.id,
           command.argument
@@ -111,13 +113,13 @@ export class CommandHandler {
         );
         return;
       }
-      const profile = profileFromUser(message, command.argument);
+      const profile = profileFromUser(message, requestedLocale);
       if (!profile) return;
-      await this.attendance.setLocale(profile, command.argument);
+      await this.attendance.setLocale(profile, requestedLocale);
       await this.telegram.sendMessage(
         message.chat.id,
-        `${getLocale(command.argument).languageChanged}\n\n${getLocale(command.argument).help}`,
-        keyboard(command.argument),
+        `${getLocale(requestedLocale).languageChanged}\n\n${getLocale(requestedLocale).help}`,
+        keyboard(requestedLocale),
         message.message_id,
       );
       return;
