@@ -127,7 +127,7 @@ const zh: LocaleText = {
       `状态：❌ ${inlineCode("打卡失败！")}`,
       `原因：你正在进行的活动，${inlineCode(activity)}`,
       divider,
-      "提示：进行其他活动前，请先回座",
+      `提示：${inlineCode("进行其他活动前，请先回座")}`,
       divider,
       `回座：${inlineCode("/back")}`,
     ].join("\n");
@@ -230,7 +230,7 @@ const en: LocaleText = {
       `Status: ❌ ${inlineCode("Check-In Failed!")}`,
       `Reason: You have an ongoing activity, ${inlineCode(activity)}`,
       divider,
-      "Hint: Please Back to Seat before engaging in other activities.",
+      `Hint: ${inlineCode("Please Back to Seat before engaging in other activities.")}`,
       divider,
       `Back to Seat: ${inlineCode("/back")}`,
     ].join("\n");
