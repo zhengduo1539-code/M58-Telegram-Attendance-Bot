@@ -116,7 +116,11 @@ export class AttendanceService {
       const text = getLocale(locale);
       const active = state.activeActivities[key];
       if (active) {
-        response = text.alreadyActive(activityLabel(active.kind, locale));
+        response = text.alreadyActive(
+          profile.displayName,
+          profile.userId,
+          activityLabel(active.kind, locale),
+        );
         return;
       }
       const dayKey = localDateKey(now, this.config.timeZone);

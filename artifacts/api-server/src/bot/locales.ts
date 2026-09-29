@@ -11,7 +11,11 @@ type LocaleText = {
   title: string;
   help: string;
   noActive: string;
-  alreadyActive: (activity: string) => string;
+  alreadyActive: (
+    displayName: string,
+    userId: number,
+    activity: string,
+  ) => string;
   started: (
     displayName: string,
     userId: number,
@@ -114,8 +118,20 @@ const zh: LocaleText = {
     `活动开始后请在回座时使用 ${inlineCode("/back")}。`,
   ].join("\n"),
   noActive: "当前没有正在进行的活动，无需回座结算。",
-  alreadyActive: (activity) =>
-    `⚠️ 你正在进行「${inlineCode(activity)}」，请先使用 ${inlineCode("/back")} 回座后再开始新的活动。`,
+  alreadyActive: (displayName, userId, activity) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `用户：${identity.name}`,
+      `用户标识：${identity.id}`,
+      divider,
+      `状态：❌ ${inlineCode("打卡失败！")}`,
+      `原因：你正在进行的活动，${inlineCode(activity)}`,
+      divider,
+      "提示：进行其他活动前，请先回座",
+      divider,
+      `回座：${inlineCode("/back")}`,
+    ].join("\n");
+  },
   started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
     const identity = userIdentity(displayName, userId);
     return [
@@ -205,8 +221,20 @@ const en: LocaleText = {
     `Use ${inlineCode("/back")} when you return.`,
   ].join("\n"),
   noActive: "You do not have an active activity to settle.",
-  alreadyActive: (activity) =>
-    `⚠️ You are currently on “${inlineCode(activity)}”. Use ${inlineCode("/back")} before starting another activity.`,
+  alreadyActive: (displayName, userId, activity) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `User: ${identity.name}`,
+      `User ID: ${identity.id}`,
+      divider,
+      `Status: ❌ ${inlineCode("Check-In Failed!")}`,
+      `Reason: You have an ongoing activity, ${inlineCode(activity)}`,
+      divider,
+      "Hint: Please Back to Seat before engaging in other activities.",
+      divider,
+      `Back to Seat: ${inlineCode("/back")}`,
+    ].join("\n");
+  },
   started: (displayName, userId, activity, time, occurrence, limitMinutes) => {
     const identity = userIdentity(displayName, userId);
     return [
