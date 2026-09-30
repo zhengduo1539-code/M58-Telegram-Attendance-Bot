@@ -35,6 +35,11 @@ type LocaleText = {
     todayTotalSeconds: number,
     todayCounts: Record<ActivityKind, number>,
   ) => string;
+  timeoutReminder: (
+    displayName: string,
+    userId: number,
+    activity: string,
+  ) => string;
   shiftStarted: (time: string) => string;
   shiftEnded: (time: string) => string;
   languageChanged: string;
@@ -180,6 +185,15 @@ const zh: LocaleText = {
         ),
     ].join("\n");
   },
+  timeoutReminder: (displayName, userId, activity) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `用户：${identity.name}`,
+      `用户标识：${identity.id}`,
+      `⚠️ 警告：您本次${inlineCode(activity)}已超时，请尽快回座！`,
+      `回座：${inlineCode("/back")}`,
+    ].join("\n");
+  },
   shiftStarted: (time) => `✅ 上班打卡成功：${inlineCode(time)}`,
   shiftEnded: (time) => `✅ 下班打卡成功：${inlineCode(time)}`,
   languageChanged: "语言已切换为中文。",
@@ -289,6 +303,15 @@ const en: LocaleText = {
           (kind) =>
             `Today's ${activityLabel(kind, "en")}: ${inlineCode(`${todayCounts[kind]} times`)}`,
         ),
+    ].join("\n");
+  },
+  timeoutReminder: (displayName, userId, activity) => {
+    const identity = userIdentity(displayName, userId);
+    return [
+      `User: ${identity.name}`,
+      `User ID: ${identity.id}`,
+      `⚠️ Warning: Your ${inlineCode(activity)} activity is overdue. Please return to your seat.`,
+      `Back to Seat: ${inlineCode("/back")}`,
     ].join("\n");
   },
   shiftStarted: (time) => `✅ Work check-in succeeded: ${inlineCode(time)}`,

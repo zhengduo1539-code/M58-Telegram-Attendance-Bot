@@ -33,6 +33,8 @@ export type ActiveActivity = {
   kind: ActivityKind;
   startedAt: string;
   limitMinutes: number;
+  reminderClaimedAt?: string;
+  reminderSentAt?: string;
 };
 
 export type BotState = {

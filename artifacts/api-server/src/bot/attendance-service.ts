@@ -1,9 +1,5 @@
 import type { BotConfig } from "./config";
-import {
-  activityLabel,
-  getLocale,
-  type ActivitySummary,
-} from "./locales";
+import { activityLabel, getLocale, type ActivitySummary } from "./locales";
 import type {
   ActivityKind,
   ActiveActivity,
@@ -15,8 +11,16 @@ import type {
 import type { BotStore } from "./store/types";
 
 const trackedActivities: ActivityKind[] = ["eat", "wc", "smoke", "wcd"];
+const REMINDER_GRACE_MS = 45_000;
+const REMINDER_CLAIM_LEASE_MS = 60_000;
 
 const userKey = (chatId: number, userId: number) => `${chatId}:${userId}`;
+
+export type ActivityReminderClaim = {
+  activity: ActiveActivity;
+  locale: Locale;
+  claimedAt: string;
+};
 
 const createId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -54,7 +58,9 @@ const formatDuration = (seconds: number) => {
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
   const remainder = safeSeconds % 60;
-  return [hours, minutes, remainder].map((value) => String(value).padStart(2, "0")).join(":");
+  return [hours, minutes, remainder]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
 };
 
 const ensureProfile = (
@@ -178,7 +184,9 @@ export class AttendanceService {
 
       const elapsedSeconds = Math.max(
         0,
-        Math.floor((now.getTime() - new Date(active.startedAt).getTime()) / 1000),
+        Math.floor(
+          (now.getTime() - new Date(active.startedAt).getTime()) / 1000,
+        ),
       );
       state.records.push({
         id: createId(),
@@ -198,7 +206,8 @@ export class AttendanceService {
         (record) =>
           record.chatId === profile.chatId &&
           record.userId === profile.userId &&
-          localDateKey(new Date(record.endedAt), this.config.timeZone) === dayKey,
+          localDateKey(new Date(record.endedAt), this.config.timeZone) ===
+            dayKey,
       );
       const activitySummary = matchingRecords
         .filter((record) => record.kind === active.kind)
@@ -254,7 +263,10 @@ export class AttendanceService {
     };
   }
 
-  async setActivityLimit(kind: ActivityKind, minutes: number): Promise<ActivityLimits> {
+  async setActivityLimit(
+    kind: ActivityKind,
+    minutes: number,
+  ): Promise<ActivityLimits> {
     let limits: ActivityLimits = { ...this.config.activityLimits };
     await this.store.update((state) => {
       limits = {
@@ -265,6 +277,114 @@ export class AttendanceService {
       state.activityLimits = limits;
     });
     return limits;
+  }
+
+  async dueActivityReminders(now = new Date()): Promise<ActiveActivity[]> {
+    const state = await this.store.load();
+    const nowMs = now.getTime();
+    return Object.values(state.activeActivities)
+      .filter((activity) => {
+        const dueAt =
+          new Date(activity.startedAt).getTime() +
+          activity.limitMinutes * 60_000 +
+          REMINDER_GRACE_MS;
+        if (
+          !Number.isFinite(dueAt) ||
+          dueAt > nowMs ||
+          activity.reminderSentAt
+        ) {
+          return false;
+        }
+
+        const claimedAt = activity.reminderClaimedAt
+          ? new Date(activity.reminderClaimedAt).getTime()
+          : Number.NaN;
+        return (
+          !Number.isFinite(claimedAt) ||
+          nowMs - claimedAt >= REMINDER_CLAIM_LEASE_MS
+        );
+      })
+      .map((activity) => ({ ...activity }));
+  }
+
+  async claimActivityReminder(
+    candidate: Pick<ActiveActivity, "chatId" | "userId" | "startedAt">,
+    now = new Date(),
+  ): Promise<ActivityReminderClaim | undefined> {
+    const key = userKey(candidate.chatId, candidate.userId);
+    const claimedAt = now.toISOString();
+    let claim: ActivityReminderClaim | undefined;
+
+    await this.store.update((state) => {
+      const activity = state.activeActivities[key];
+      if (
+        !activity ||
+        activity.startedAt !== candidate.startedAt ||
+        activity.reminderSentAt
+      ) {
+        return;
+      }
+
+      const dueAt =
+        new Date(activity.startedAt).getTime() +
+        activity.limitMinutes * 60_000 +
+        REMINDER_GRACE_MS;
+      if (!Number.isFinite(dueAt) || dueAt > now.getTime()) return;
+
+      const existingClaim = activity.reminderClaimedAt
+        ? new Date(activity.reminderClaimedAt).getTime()
+        : Number.NaN;
+      if (
+        Number.isFinite(existingClaim) &&
+        now.getTime() - existingClaim < REMINDER_CLAIM_LEASE_MS
+      ) {
+        return;
+      }
+
+      activity.reminderClaimedAt = claimedAt;
+      claim = {
+        activity: { ...activity },
+        locale: state.users[key]?.locale || "zh",
+        claimedAt,
+      };
+    });
+
+    return claim;
+  }
+
+  async markActivityReminderSent(
+    claim: ActivityReminderClaim,
+    sentAt = new Date(),
+  ): Promise<void> {
+    const key = userKey(claim.activity.chatId, claim.activity.userId);
+    await this.store.update((state) => {
+      const activity = state.activeActivities[key];
+      if (
+        !activity ||
+        activity.startedAt !== claim.activity.startedAt ||
+        activity.reminderClaimedAt !== claim.claimedAt
+      ) {
+        return;
+      }
+
+      activity.reminderSentAt = sentAt.toISOString();
+      delete activity.reminderClaimedAt;
+    });
+  }
+
+  async releaseActivityReminderClaim(
+    claim: ActivityReminderClaim,
+  ): Promise<void> {
+    const key = userKey(claim.activity.chatId, claim.activity.userId);
+    await this.store.update((state) => {
+      const activity = state.activeActivities[key];
+      if (
+        activity?.startedAt === claim.activity.startedAt &&
+        activity.reminderClaimedAt === claim.claimedAt
+      ) {
+        delete activity.reminderClaimedAt;
+      }
+    });
   }
 
   async active(

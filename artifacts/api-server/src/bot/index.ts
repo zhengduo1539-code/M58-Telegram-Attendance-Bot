@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { ActivityReminderScheduler } from "./activity-reminder-scheduler";
 import { AttendanceService } from "./attendance-service";
 import { CommandHandler } from "./command-handler";
 import { getBotConfig } from "./config";
@@ -36,6 +37,12 @@ export const startTelegramBot = async (logger: Logger) => {
       const handler = new CommandHandler(telegram, attendance, config);
       const bot = new TelegramPollingBot(config, logger, handler, telegram);
       await bot.start();
+      const reminders = new ActivityReminderScheduler(
+        attendance,
+        telegram,
+        logger,
+      );
+      reminders.start();
       return bot;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
