@@ -4,7 +4,7 @@ import { AttendanceService } from "./attendance-service";
 import { CommandHandler } from "./command-handler";
 import { getBotConfig } from "./config";
 import { TelegramPollingBot } from "./polling";
-import { setBotStatus } from "./runtime";
+import { setAttendanceService, setBotStatus } from "./runtime";
 import { FileBotStore } from "./store/file-store";
 import { TelegramClient } from "./telegram-client";
 
@@ -30,6 +30,7 @@ export const startTelegramBot = async (logger: Logger) => {
     try {
       const store = new FileBotStore(config.dataPath);
       const attendance = new AttendanceService(store, config);
+      setAttendanceService(attendance);
       const telegram = new TelegramClient(
         config.token,
         config.telegramRequestTimeoutMs,
