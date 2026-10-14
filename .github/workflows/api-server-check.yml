@@ -33,8 +33,10 @@ jobs:
           cache: pnpm
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build workspace libraries
+        run: pnpm run typecheck:libs
       - name: Build API server (same command as Render)
         run: pnpm --filter @workspace/api-server run build
-      - name: Run standalone typecheck (currently has pre-existing repository errors)
+      - name: Run standalone typecheck (repository has additional known type errors)
         run: pnpm --filter @workspace/api-server run typecheck
         continue-on-error: true
